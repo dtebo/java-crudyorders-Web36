@@ -9,4 +9,7 @@ public interface CustomerService {
     Customer findCustomerByCustcode(long id);
     List<Customer> findByCustnameContainingIgnoringCase(String substring);
     Customer save(Customer customer);
+    Customer update(Customer customer, long id);
+    void delete(long id);
+    void deleteAll();
 }
