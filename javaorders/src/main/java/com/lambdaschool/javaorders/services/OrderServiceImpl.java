@@ -2,6 +2,7 @@ package com.lambdaschool.javaorders.services;
 
 import com.lambdaschool.javaorders.models.Order;
 import com.lambdaschool.javaorders.models.Payment;
+import com.lambdaschool.javaorders.repositories.CustomerRepository;
 import com.lambdaschool.javaorders.repositories.OrderRepository;
 import com.lambdaschool.javaorders.repositories.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,10 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     PaymentRepository paymentRepository;
-    
+
+    @Autowired
+    CustomerRepository customerRepository;
+
     @Override
     public Order findOrderByOrdnum(long id){
         Order order = orderRepository.findOrderByOrdnum(id);
@@ -45,16 +49,24 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if(order.getCustomer() != null){
-            updateOrder.setCustomer(order.getCustomer());
+            updateOrder.setCustomer(
+                    customerRepository.findById(order.getCustomer().getCustcode())
+                    .orElseThrow(() -> new EntityNotFoundException("Customer " + order.getCustomer().getCustcode() + " Not Found!"))
+            );
         }
 
         if(order.getPayments().size() > 0){
             updateOrder.getPayments().clear();
 
             for(Payment p : order.getPayments()){
-                Payment p = paymentRepository
+                Payment updatePayment = paymentRepository.findById(p.getPaymentid())
+                        .orElseThrow(() -> new EntityNotFoundException("Payment " + p.getPaymentid() + " Not Found!"));
+
+                updateOrder.getPayments().add(updatePayment);
             }
         }
+
+        return orderRepository.save(updateOrder);
     }
 
     @Transactional
@@ -72,17 +84,19 @@ public class OrderServiceImpl implements OrderService {
         newOrder.setOrdamount(order.getOrdamount());
         newOrder.setOrderdescription(order.getOrderdescription());
         newOrder.setAdvanceamount(order.getAdvanceamount());
-        newOrder.setCustomer(order.getCustomer());
+        newOrder.setCustomer(
+                customerRepository.findById(order.getCustomer().getCustcode())
+                .orElseThrow(() -> new EntityNotFoundException("Customer " + order.getCustomer().getCustcode() + " Not Found!"))
+        );
 
         if(order.getPayments().size() > 0){
             newOrder.getPayments().clear();
 
             for(Payment p : order.getPayments()){
-                Payment newPayment = new Payment();
-                newPayment.setPaymentid(p.getPaymentid());
-                newPayment.setType(p.getType());
+                Payment newPayment = paymentRepository.findById(p.getPaymentid())
+                        .orElseThrow(() -> new EntityNotFoundException("Payment " + p.getPaymentid() + " Not Found!"));
 
-                order.getPayments().add(newPayment);
+                newOrder.getPayments().add(newPayment);
             }
         }
 
